@@ -1,4 +1,4 @@
-name: Build and publish Docker images
+name: CI
 
 on:
   schedule:
@@ -6,7 +6,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_and_push:
+    permissions:
+      contents: read
+      packages: write
+
     strategy:
       matrix:
         platform:
