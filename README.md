@@ -3,7 +3,7 @@
 [![Docker Image](https://img.shields.io/docker/pulls/somespecialone/rust-musl-cross-gcc.svg?maxAge=2592000)](https://hub.docker.com/r/somespecialone/rust-musl-cross-gcc/)
 [![Build & Publish](https://github.com/somespecialone/rust-musl-cross-gcc/actions/workflows/ci.yml/badge.svg)](https://github.com/somespecialone/rust-musl-cross-gcc/actions/workflows/ci.yml)
 
-Docker images for cross-compiling static **Rust and C binaries** with musl and GCC toolchains.
+Docker images for cross-compiling static **Rust and C binaries** with MUSL and GCC toolchains.
 
 ## Acknowledgements
 
@@ -15,7 +15,7 @@ This project is a _soft fork and based_ on [rust-cross/rust-musl-cross](https://
 
 Available [prebuilt Docker images on Docker Hub](https://hub.docker.com/r/somespecialone/rust-musl-cross-gcc/)
 and [GitHub Packages](https://github.com/somespecialone/rust-musl-cross-gcc/pkgs/container/rust-musl-cross-gcc),
-that supports **x86_64(amd64)** and **aarch64(arm64)** architectures:
+suited for **linux/amd64 (x86_64)** and **linux/arm64 (aarch64)** architectures:
 
 | Cross Compile Target           | Docker Image Tag |
 |--------------------------------|------------------|

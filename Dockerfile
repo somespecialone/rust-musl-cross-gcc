@@ -27,16 +27,18 @@ RUN apt-get update && \
     llvm-dev \
     libclang-dev \
     clang \
-    && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    musl-dev \
+    musl-tools \
+    pkg-config
 
 # Install Let's Encrypt R3 CA certificate from https://letsencrypt.org/certificates/
 COPY lets-encrypt-r3.crt /usr/local/share/ca-certificates
 RUN update-ca-certificates
 
-ARG TARGET
-ENV RUST_MUSL_CROSS_TARGET=$TARGET
+ARG TARGET=x86_64-unknown-linux-musl
 ARG RUST_MUSL_MAKE_CONFIG=config.mak
+
+ENV RUST_MUSL_CROSS_TARGET=$TARGET
 
 COPY $RUST_MUSL_MAKE_CONFIG /tmp/config.mak
 
@@ -45,10 +47,8 @@ RUN cd /tmp && \
     cp /tmp/config.mak /tmp/musl-cross-make/config.mak && \
     cd /tmp/musl-cross-make && \
     export CFLAGS="-fPIC -g1 $CFLAGS" && \
-    export TARGET=$TARGET && \
-    if [ `dpkg --print-architecture` = 'armhf' ] && [ `uname -m` = 'aarch64' ]; then SETARCH=linux32; else SETARCH= ; fi && \
-    $SETARCH make -j$(nproc) > /tmp/musl-cross-make.log && \
-    $SETARCH make install >> /tmp/musl-cross-make.log && \
+    make -j$(nproc) > /tmp/musl-cross-make.log && \
+    make install >> /tmp/musl-cross-make.log && \
     ln -s /usr/local/musl/bin/$TARGET-strip /usr/local/musl/bin/musl-strip && \
     cd /tmp && \
     rm -rf /tmp/musl-cross-make /tmp/musl-cross-make.log
@@ -65,6 +65,10 @@ ENV TARGET_RANLIB=$TARGET-ranlib
 ENV TARGET_HOME=/usr/local/musl/$TARGET
 ENV TARGET_C_INCLUDE_PATH=$TARGET_HOME/include/
 
+# Set C & C++ linkers
+ENV CC=$TARGET_CC
+ENV CXX=$TARGET_CXX
+
 # pkg-config cross compilation support
 ENV TARGET_PKG_CONFIG_ALLOW_CROSS=1
 ENV TARGET_PKG_CONFIG_SYSROOT_DIR=$TARGET_HOME
@@ -75,8 +79,7 @@ ENV TARGET_PKG_CONFIG_LIBDIR=$TARGET_PKG_CONFIG_PATH
 # clean up when you're done.
 WORKDIR /home/rust/libs
 
-RUN export CC=$TARGET_CC && \
-    export C_INCLUDE_PATH=$TARGET_C_INCLUDE_PATH && \
+RUN export C_INCLUDE_PATH=$TARGET_C_INCLUDE_PATH && \
     export AR=$TARGET_AR && \
     export RANLIB=$TARGET_RANLIB && \
     echo "Building zlib" && \
@@ -102,7 +105,7 @@ ARG TOOLCHAIN=stable
 #
 # Remove docs and more stuff not needed in this images to make them smaller
 RUN chmod 755 /root/ && \
-    if [ `dpkg --print-architecture` = 'armhf' ]; then GNU_TARGET="armv7-unknown-linux-gnueabihf"; else GNU_TARGET=`uname -m`-unknown-linux-gnu; fi && \
+    GNU_TARGET=$(uname -m)-unknown-linux-gnu && \
     export RUSTUP_USE_CURL=1 && \
     curl https://sh.rustup.rs -sqSf | \
     sh -s -- -y --profile minimal --default-toolchain $TOOLCHAIN --default-host $GNU_TARGET && \
@@ -118,54 +121,30 @@ ENV CARGO_BUILD_TARGET=$TARGET
 
 ENV CFLAGS_armv7_unknown_linux_musleabihf='-mfpu=vfpv3-d16'
 
-# Build statically linked binaries for MIPS targets
-ENV CARGO_TARGET_MIPS_UNKNOWN_LINUX_MUSL_RUSTFLAGS='-C target-feature=+crt-static'
-ENV CARGO_TARGET_MIPSEL_UNKNOWN_LINUX_MUSL_RUSTFLAGS='-C target-feature=+crt-static'
-ENV CARGO_TARGET_MIPS64_UNKNOWN_LINUX_MUSLABI64_RUSTFLAGS='-C target-feature=+crt-static'
-ENV CARGO_TARGET_MIPS64EL_UNKNOWN_LINUX_MUSLABI64_RUSTFLAGS='-C target-feature=+crt-static'
-
-# Install apt packages for C cross compiling depending on target
-RUN sudo apt update -y && sudo apt install -y gcc-multilib gcc make musl-dev musl-tools
-RUN if [ "$TARGET" = "armv7-unknown-linux-musleabihf" ]; then \
-        sudo apt install -y libc6-dev-armhf-cross; \
+# Cross-compiler toolchains depending on target and arch, hopeffuly enough to build most C libraries through cargo
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$TARGET" = "x86_64-unknown-linux-musl" ] && [ "$ARCH" = "arm64" ]; then \
+      apt-get install -y libc6-dev-amd64-cross gcc-x86-64-linux-gnu g++-x86-64-linux-gnu; \
+    elif [ "$TARGET" = "armv7-unknown-linux-musleabihf" ]; then \
+      apt-get install -y libc6-dev-armhf-cross gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf; \
     elif [ "$TARGET" = "armv7-unknown-linux-musleabi" ]; then \
-        sudo apt install -y libc6-dev-armel-cross; \
+      apt-get install -y libc6-dev-armel-cross gcc-arm-linux-gnueabi g++-arm-linux-gnueabi; \
     elif [ "$TARGET" = "arm-unknown-linux-musleabi" ]; then \
-        sudo apt install -y libc6-dev-armel-cross; \
+      apt-get install -y libc6-dev-armel-cross gcc-arm-linux-gnueabi g++-arm-linux-gnueabi; \
     elif [ "$TARGET" = "arm-unknown-linux-musleabihf" ]; then \
-        sudo apt install -y libc6-dev-armhf-cross; \
-    elif [ "$TARGET" = "aarch64-unknown-linux-musl" ]; then \
-        sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu libc6-dev-arm64-cross; \
-    elif [ "$TARGET" = "i686-unknown-linux-musl" ]; then \
-        sudo apt install -y g++-multilib; \
-    elif [ "$TARGET" = "i586-unknown-linux-musl" ]; then \
-        sudo apt install -y g++-multilib; \
+      apt-get install -y libc6-dev-armhf-cross gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf; \
+    elif [ "$TARGET" = "aarch64-unknown-linux-musl" ] && [ "$ARCH" = "amd64" ]; then \
+      apt-get install -y libc6-dev-arm64-cross gcc-aarch64-linux-gnu g++-aarch64-linux-gnu; \
+    elif [ "$TARGET" = "i686-unknown-linux-musl" ] || [ "$TARGET" = "i586-unknown-linux-musl" ]; then \
+      if [ "$ARCH" = "arm64" ]; then \
+        apt-get install -y libc6-dev-i386-cross gcc-i686-linux-gnu g++-i686-linux-gnu; \
+      else \
+        apt-get install -y gcc-multilib g++-multilib; \
+      fi; \
     fi
 
-# Set linkers
-ENV CC=$TARGET_CC
-ENV CXX=$TARGET_CXX
-
-# armv7-unknown-linux-musleabihf
-ENV CARGO_TARGET_ARMV7_UNKNOWN_LINUX_MUSLEABIHF_LINKER=$TARGET_CC
-
-# armv7-unknown-linux-musleabi
-ENV CARGO_TARGET_ARMV7_UNKNOWN_LINUX_MUSLEABI_LINKER=$TARGET_CC
-
-# arm-unknown-linux-musleabi
-ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_MUSLEABI_LINKER=$TARGET_CC
-
-# arm-unknown-linux-musleabihf
-ENV CARGO_TARGET_ARM_UNKNOWN_LINUX_MUSLEABIHF_LINKER=$TARGET_CC
-
-# aarch64-unknown-linux-musl
-ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=$TARGET_CC
-
-# i686-unknown-linux-musl
-ENV CARGO_TARGET_I686_UNKNOWN_LINUX_MUSL_LINKER=$TARGET_CC
-
-# i586-unknown-linux-musl
-ENV CARGO_TARGET_I586_UNKNOWN_LINUX_MUSL_LINKER=$TARGET_CC
+# clean apt lists for smaller image size
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Expect our source code to live in /home/rust/src
 WORKDIR /home/rust/src
