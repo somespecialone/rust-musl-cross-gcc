@@ -102,11 +102,10 @@ jobs:
       - name: Download all digests
         uses: actions/download-artifact@v5
         with:
-          path: ${{ runner.temp }}/digests
+          path: digests
           pattern: digest-*
 
       - name: Group digests by tag
-        working-directory: ${{ runner.temp }}/digests
         run: |
           # Aggregate into one file
           cat digests/*/digest.txt > digests.txt
@@ -120,7 +119,6 @@ jobs:
           ' digests.txt > grouped.json
 
       - name: Create manifest lists and push to Docker Hub
-        working-directory: ${{ runner.temp }}/digests
         run: |
           # Create multi-platform manifests
           for tag in $(jq -r 'keys[]' grouped.json); do
@@ -137,7 +135,6 @@ jobs:
           done
 
       - name: Create manifest lists and push to GitHub Container Registry
-        working-directory: ${{ runner.temp }}/digests
         run: |
           # Create multi-platform manifests
           for tag in $(jq -r 'keys[]' grouped.json); do
