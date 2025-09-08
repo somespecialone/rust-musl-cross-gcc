@@ -26,6 +26,7 @@ suited for **linux/amd64 (x86_64)** and **linux/arm64 (aarch64)** architectures:
 | aarch64-unknown-linux-musl     | aarch64-musl     |
 | i686-unknown-linux-musl        | i686-musl        |
 | i586-unknown-linux-musl        | i586-musl        |
+| x86_64-unknown-linux-musl      | x86_64-musl      |
 
 ## How to use
 
