@@ -81,6 +81,10 @@ jobs:
           retention-days: 1
 
   merge_and_push:
+    permissions:
+      contents: read
+      packages: write
+
     runs-on: ubuntu-latest
     needs: build_and_push
     name: Merge and push manifest lists
