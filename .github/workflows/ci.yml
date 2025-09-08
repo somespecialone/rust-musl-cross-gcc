@@ -21,22 +21,22 @@ jobs:
         target:
           - tag: x86_64-musl
             args: TARGET=x86_64-unknown-linux-musl
-#          - tag: aarch64-musl
-#            args: |
-#              TARGET=aarch64-unknown-linux-musl
-#              RUST_MUSL_MAKE_CONFIG=config.aarch64.mak
-#          - tag: armv7-musleabihf
-#            args: TARGET=armv7-unknown-linux-musleabihf
-#          - tag: armv7-musleabi
-#            args: TARGET=armv7-unknown-linux-musleabi
-#          - tag: arm-musleabi
-#            args: TARGET=arm-unknown-linux-musleabi
-#          - tag: arm-musleabihf
-#            args: TARGET=arm-unknown-linux-musleabihf
-#          - tag: i686-musl
-#            args: TARGET=i686-unknown-linux-musl
-#          - tag: i586-musl
-#            args: TARGET=i586-unknown-linux-musl
+          - tag: armv7-musleabihf
+            args: TARGET=armv7-unknown-linux-musleabihf
+          - tag: armv7-musleabi
+            args: TARGET=armv7-unknown-linux-musleabi
+          - tag: arm-musleabi
+            args: TARGET=arm-unknown-linux-musleabi
+          - tag: arm-musleabihf
+            args: TARGET=arm-unknown-linux-musleabihf
+          - tag: aarch64-musl
+            args: |
+              TARGET=aarch64-unknown-linux-musl
+              RUST_MUSL_MAKE_CONFIG=config.aarch64.mak
+          - tag: i686-musl
+            args: TARGET=i686-unknown-linux-musl
+          - tag: i586-musl
+            args: TARGET=i586-unknown-linux-musl
 
     name: Build & push ${{ matrix.platform.docker-platform }}:${{ matrix.target.tag }}
     runs-on: ${{ matrix.platform.runner }}
