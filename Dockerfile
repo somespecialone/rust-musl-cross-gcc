@@ -125,14 +125,16 @@ ENV CFLAGS_armv7_unknown_linux_musleabihf='-mfpu=vfpv3-d16'
 RUN ARCH=$(dpkg --print-architecture) && \
     if [ "$TARGET" = "x86_64-unknown-linux-musl" ] && [ "$ARCH" = "arm64" ]; then \
       apt-get install -y libc6-dev-amd64-cross gcc-x86-64-linux-gnu g++-x86-64-linux-gnu; \
-    elif [ "$TARGET" = "armv7-unknown-linux-musleabihf" ]; then \
+    elif [ "$TARGET" = "armv7-unknown-linux-musleabihf" ] || [ "$TARGET" = "arm-unknown-linux-musleabihf" ]; then \
       apt-get install -y libc6-dev-armhf-cross gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf; \
-    elif [ "$TARGET" = "armv7-unknown-linux-musleabi" ]; then \
+      if [ "$ARCH" = "amd64" ]; then \
+        apt-get install -y gcc-multilib g++-multilib; \
+      fi; \
+    elif [ "$TARGET" = "armv7-unknown-linux-musleabi" ] || [ "$TARGET" = "arm-unknown-linux-musleabi" ]; then \
       apt-get install -y libc6-dev-armel-cross gcc-arm-linux-gnueabi g++-arm-linux-gnueabi; \
-    elif [ "$TARGET" = "arm-unknown-linux-musleabi" ]; then \
-      apt-get install -y libc6-dev-armel-cross gcc-arm-linux-gnueabi g++-arm-linux-gnueabi; \
-    elif [ "$TARGET" = "arm-unknown-linux-musleabihf" ]; then \
-      apt-get install -y libc6-dev-armhf-cross gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf; \
+      if [ "$ARCH" = "amd64" ]; then \
+        apt-get install -y gcc-multilib g++-multilib; \
+      fi; \
     elif [ "$TARGET" = "aarch64-unknown-linux-musl" ] && [ "$ARCH" = "amd64" ]; then \
       apt-get install -y libc6-dev-arm64-cross gcc-aarch64-linux-gnu g++-aarch64-linux-gnu; \
     elif [ "$TARGET" = "i686-unknown-linux-musl" ] || [ "$TARGET" = "i586-unknown-linux-musl" ]; then \
