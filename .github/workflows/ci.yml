@@ -75,7 +75,7 @@ jobs:
         run: echo ${{ matrix.target.tag }}=${{ steps.build.outputs.digest }} > ${{ runner.temp }}/digest.txt
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: digest-${{ strategy.job-index }}
           path: ${{ runner.temp }}/digest.txt
