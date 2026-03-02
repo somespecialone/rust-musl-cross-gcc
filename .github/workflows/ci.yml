@@ -14,9 +14,9 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: ubuntu-22.04
+          - runner: ubuntu-24.04
             docker-platform: linux/amd64
-          - runner: ubuntu-22.04-arm
+          - runner: ubuntu-24.04-arm
             docker-platform: linux/arm64
         target:
           - tag: x86_64-musl
@@ -75,7 +75,7 @@ jobs:
         run: echo ${{ matrix.target.tag }}=${{ steps.build.outputs.digest }} > ${{ runner.temp }}/digest.txt
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: digest-${{ strategy.job-index }}
           path: ${{ runner.temp }}/digest.txt
@@ -106,7 +106,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download all digests
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           path: digests
           pattern: digest-*

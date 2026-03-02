@@ -80,6 +80,6 @@ at your option.
 ### Copyright
 
 - Original work © 2017–2025 rust-cross contributors
-- Modifications © 2025 Somespecialone <itsme@somespecial.one>
+- Modifications © 2025-2026 Somespecialone <itsme@somespecial.one>
 
 Both the original work and modifications are licensed under the same [license](#license).

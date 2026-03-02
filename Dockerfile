@@ -1,13 +1,12 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Make sure we have basic dev tools for building C libraries.  Our goal
+# Make sure we have basic dev tools for building C libraries. Our goal
 # here is to support the musl-libc builds and Cargo builds needed for a
 # large selection of the most popular crates.
-#
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     curl \
@@ -29,7 +28,8 @@ RUN apt-get update && \
     clang \
     musl-dev \
     musl-tools \
-    pkg-config
+    pkg-config && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Let's Encrypt R3 CA certificate from https://letsencrypt.org/certificates/
 COPY lets-encrypt-r3.crt /usr/local/share/ca-certificates
@@ -75,7 +75,7 @@ ENV TARGET_PKG_CONFIG_SYSROOT_DIR=$TARGET_HOME
 ENV TARGET_PKG_CONFIG_PATH=$TARGET_HOME/lib/pkgconfig:/usr/local/musl/lib/pkgconfig
 ENV TARGET_PKG_CONFIG_LIBDIR=$TARGET_PKG_CONFIG_PATH
 
-# We'll build our libraries in subdirectories of /home/rust/libs.  Please
+# We'll build our libraries in subdirectories of /home/rust/libs. Please
 # clean up when you're done.
 WORKDIR /home/rust/libs
 
@@ -83,34 +83,35 @@ RUN export C_INCLUDE_PATH=$TARGET_C_INCLUDE_PATH && \
     export AR=$TARGET_AR && \
     export RANLIB=$TARGET_RANLIB && \
     echo "Building zlib" && \
-    VERS=1.3.1 && \
-    CHECKSUM=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23 && \
+    VERS=1.3.2 && \
+    CHECKSUM=bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16 && \
     cd /home/rust/libs && \
-    curl -sqLO https://zlib.net/zlib-$VERS.tar.gz && \
-    echo "$CHECKSUM zlib-$VERS.tar.gz" > checksums.txt && \
-    sha256sum -c checksums.txt && \
-    tar xzf zlib-$VERS.tar.gz && cd zlib-$VERS && \
+    curl -fL --retry 5 --retry-delay 2 https://zlib.net/fossils/zlib-$VERS.tar.gz -o zlib.tar.gz && \
+    echo "$CHECKSUM  zlib.tar.gz" | sha256sum -c - && \
+    tar xzf zlib.tar.gz && cd zlib-$VERS && \
     CFLAGS="-O3 -fPIC" ./configure --static --prefix=$TARGET_HOME && \
     make -j$(nproc) && make install && \
-    cd .. && rm -rf zlib-$VERS.tar.gz zlib-$VERS checksums.txt
+    cd .. && rm -rf zlib.tar.gz zlib-$VERS
 
 # The Rust toolchain to use when building our image
 ARG TOOLCHAIN=stable
-# Install our Rust toolchain and the `musl` target.  We patch the
+
+# Install our Rust toolchain and the `musl` target. We patch the
 # command-line we pass to the installer so that it won't attempt to
-# interact with the user or fool around with TTYs.  We also set the default
+# interact with the user or fool around with TTYs. We also set the default
 # `--target` to musl so that our users don't need to keep overriding it
 # manually.
-# Chmod 755 is set for root directory to allow access execute binaries in /root/.cargo/bin (azure piplines create own user).
-#
+# Chmod 755 is set for root directory to allow access execute
+# binaries in /root/.cargo/bin (azure piplines create own user).
+
 # Remove docs and more stuff not needed in this images to make them smaller
 RUN chmod 755 /root/ && \
     GNU_TARGET=$(uname -m)-unknown-linux-gnu && \
     export RUSTUP_USE_CURL=1 && \
     curl https://sh.rustup.rs -sqSf | \
     sh -s -- -y --profile minimal --default-toolchain $TOOLCHAIN --default-host $GNU_TARGET && \
-    rustup target add $TARGET || rustup component add --toolchain $TOOLCHAIN rust-src && \
-    rustup component add --toolchain $TOOLCHAIN rustfmt clippy && \
+    rustup target add $TARGET && \
+    rustup component add --toolchain $TOOLCHAIN rust-src rustfmt clippy && \
     rm -rf /root/.rustup/toolchains/$TOOLCHAIN-$GNU_TARGET/share/
 
 RUN echo "[target.$TARGET]\nlinker = \"$TARGET_CC\"\n" > /root/.cargo/config.toml
@@ -143,10 +144,9 @@ RUN ARCH=$(dpkg --print-architecture) && \
       else \
         apt-get install -y gcc-multilib g++-multilib; \
       fi; \
-    fi
-
-# clean apt lists for smaller image size
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+    fi && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Expect our source code to live in /home/rust/src
 WORKDIR /home/rust/src
