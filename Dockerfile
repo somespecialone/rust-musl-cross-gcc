@@ -28,7 +28,7 @@ RUN apt-get update && \
     clang \
     musl-dev \
     musl-tools \
-    pkg-config \
+    pkg-config
 
 # Install Let's Encrypt R3 CA certificate from https://letsencrypt.org/certificates/
 COPY lets-encrypt-r3.crt /usr/local/share/ca-certificates
