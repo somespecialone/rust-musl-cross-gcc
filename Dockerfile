@@ -28,8 +28,7 @@ RUN apt-get update && \
     clang \
     musl-dev \
     musl-tools \
-    pkg-config && \
-    rm -rf /var/lib/apt/lists/*
+    pkg-config \
 
 # Install Let's Encrypt R3 CA certificate from https://letsencrypt.org/certificates/
 COPY lets-encrypt-r3.crt /usr/local/share/ca-certificates
@@ -107,7 +106,6 @@ ARG TOOLCHAIN=stable
 # Remove docs and more stuff not needed in this images to make them smaller
 RUN chmod 755 /root/ && \
     GNU_TARGET=$(uname -m)-unknown-linux-gnu && \
-    export RUSTUP_USE_CURL=1 && \
     curl https://sh.rustup.rs -sqSf | \
     sh -s -- -y --profile minimal --default-toolchain $TOOLCHAIN --default-host $GNU_TARGET && \
     rustup target add $TARGET && \
@@ -144,9 +142,10 @@ RUN ARCH=$(dpkg --print-architecture) && \
       else \
         apt-get install -y gcc-multilib g++-multilib; \
       fi; \
-    fi && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    fi
+
+# clean apt lists for smaller image size when all installations are done
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Expect our source code to live in /home/rust/src
 WORKDIR /home/rust/src
